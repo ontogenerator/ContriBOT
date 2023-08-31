@@ -100,13 +100,13 @@ screen_credit <- function(PDF_text_sentences)
   # candidates are sentences after the first section but before the next
   # which begin with <section> or digit. (reference number at start of line)
   section_end_candidates <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
-                                              \(sentence) stringr::str_detect(sentence, "section> (?!d )|^\\d\\.")) |>
+                                              \(sentence) stringr::str_detect(sentence, "section> (?!d )|^\\d\\.|references")) |>
     which() - 1
   # check if candidates are full sentences ending in full stop. This achieves splicing if section contines on next page
   completed_sentences <- furrr::future_map_lgl(PDF_text_sentences[section_start + section_end_candidates],
                                                \(sentence) stringr::str_detect(sentence, "\\.$"))
 
-  if (stringr::str_length(str_section_sameline) < 5) {
+  if (stringr::str_length(str_section_sameline) < 5 & str_section_sameline != ".") {
     # first_sentence <- DAS_start + 1
 
     section_end <- section_end_candidates[-1][completed_sentences[-1]][1]#
@@ -126,6 +126,7 @@ screen_credit <- function(PDF_text_sentences)
     # }
   }
 
+  if (is.na(section_end)) section_end <- 0
   section_end <- section_start + section_end
 
   section <- PDF_text_sentences[section_start:section_end]
