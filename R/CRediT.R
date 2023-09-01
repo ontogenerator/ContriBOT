@@ -53,7 +53,7 @@ screen_credit <- function(PDF_text_sentences)
   credit_text_sentences |>
     .enframe_results(name = "article", value = "credit_statement") |>
     dplyr::left_join(ackn_results, by = "article") |>
-    dplyr::mutate(has_credit = credit_statement != "",
+    dplyr::mutate(has_acs = credit_statement != "",
                   has_ackn = ackn_statement != "")
 
 }
@@ -67,10 +67,12 @@ screen_credit <- function(PDF_text_sentences)
     tibble::enframe(name = name, value = value)
 }
 
-# section_regexes <- ackn_section_list
+# section_regexes <- credit_section_list
 #' extract data availability statement
 #' @noRd
 .extract_section <- function(PDF_text_sentences, section_regexes) {
+
+  # TODO: validate that text extraction stops at the right spots for ackn and credit
 
   section_string <- paste0("(<section>)\\W+[\\d,\\W]*(", section_regexes, ")\\b")
   # stringr::str_detect(PDF_text_sentence, data_availability)
@@ -97,22 +99,64 @@ screen_credit <- function(PDF_text_sentences)
   str_section_sameline <- str_section |>
     stringr::str_remove(section_string)
 
+  credit_regex <- c("manuscript\\.?$",
+                    "editing\\.$",
+                    "version\\.$",
+                    "paper\\.$",
+                    "work\\.$",
+                    "project\\.$",
+                    "entirety\\.$",
+                    "validation\\.$",
+                    "review",
+                    "analysis",
+                    "supervision",
+                    "\\(equal\\)",
+                    "author",
+                    "conceptuali(z|s)ation"
+                    ) |>
+    paste(collapse = "|")
   # candidates are sentences after the first section but before the next
   # which begin with <section> or digit. (reference number at start of line)
-  section_end_candidates <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
-                                              \(sentence) stringr::str_detect(sentence, "section> (?!d )|^\\d\\.|references")) |>
-    which() - 1
-  # check if candidates are full sentences ending in full stop. This achieves splicing if section contines on next page
-  completed_sentences <- furrr::future_map_lgl(PDF_text_sentences[section_start + section_end_candidates],
-                                               \(sentence) stringr::str_detect(sentence, "\\.$"))
+  is_plos <- any(stringr::str_detect(PDF_text_sentences[1:10], "^plos ")) #explosive?
 
-  if (stringr::str_length(str_section_sameline) < 5 & str_section_sameline != ".") {
-    # first_sentence <- DAS_start + 1
+  if (is_plos == TRUE) {
 
-    section_end <- section_end_candidates[-1][completed_sentences[-1]][1]#
+    section_end <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
+                                         \(sentence) stringr::str_detect(sentence, "section> references")) |>
+      which() - 1
 
   } else {
-    section_end <- section_end_candidates[completed_sentences][1] # the first complete sentence before the beginning of a section
+
+    if (stringr::str_detect(section_regexes, "contribution")) {
+
+      section_end_candidates <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
+                                           \(sentence) !stringr::str_detect(sentence, credit_regex)) |>
+        which() - 1
+
+      section_end <- section_end_candidates[1]
+
+    } else {
+
+      section_end_candidates <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
+                                                      \(sentence) stringr::str_detect(sentence, "section> (?!d )|^\\d\\.|section> references")) |>
+        which() - 1
+      # check if candidates are full sentences ending in full stop. This achieves splicing if section contines on next page
+      completed_sentences <- furrr::future_map_lgl(PDF_text_sentences[section_start + section_end_candidates],
+                                                   \(sentence) stringr::str_detect(sentence, "\\.$"))
+
+      if (stringr::str_length(str_section_sameline) < 5 & str_section_sameline != ".") {
+        # first_sentence <- DAS_start + 1
+
+        section_end <- section_end_candidates[-1][completed_sentences[-1]][1]#
+
+      } else {
+        section_end <- section_end_candidates[completed_sentences][1] # the first complete sentence before the beginning of a section
+
+      }
+
+    }
+
+
 
     # if (section_start / length(section_detections) < 0.1 & section_end != 0) { # for plos journals with DAS on first page
     #
