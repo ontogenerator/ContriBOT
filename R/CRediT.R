@@ -18,14 +18,19 @@
 screen_credit <- function(PDF_text_sentences)
 {
   credit_section_list <- c(
-    "Author\\W?s? Contributions?",
-    "CRediT Authors? Contributions?",
-    "CRediT authorship contribution statement",
+    "Author\\W?s?\\W? Contributions? Statement",
+    "Author\\W?s?\\W? Contributions?",
+    "CRediT Authors?hip? Contributions?(statement)?",
+    # "CRediT authorship contribution statement",
+    "CRediT Author Statement",
     "Contributions",
     "Contributors",
     "Authorship"
   ) |>
-    .format_keyword_vector()
+    .format_keyword_vector() |>
+    stringr::str_replace_all("w", "W")
+
+# str_detect("credit authors contributions", "credit authors?(hip)? contributions?(statement)?")
 
   ackn_section_list <- c(
     "A ?c ?k ?n ?o ?w ?l ?e ?d ?g ?e? ?m ?e ?n ?t ?s?",
@@ -76,7 +81,6 @@ screen_credit <- function(PDF_text_sentences)
 
   section_string <- paste0("(<section>)\\W+[\\d,\\W]*(", section_regexes, ")\\b")
   # stringr::str_detect(PDF_text_sentence, data_availability)
-
   section_detections <- furrr::future_map_lgl(PDF_text_sentences,
                                           \(sentence) stringr::str_detect(sentence, section_string))
 
