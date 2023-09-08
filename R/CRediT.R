@@ -19,8 +19,8 @@ screen_credit <- function(PDF_text_sentences)
 {
   credit_section_list <- c(
     "Author\\W?s?\\W? Contributions? Statement",
-    "Author\\W?s?\\W? Contributions?",
-    "CRediT Authors?hip? Contributions?(statement)?",
+    "A ?u ?t ?h ?o ?r\\W?s?\\W? C ?o ?n ?t ?r ?i ?b ?u ?t ?i ?o ?n ?s?",
+    "CRediT Authors?hip? Contributions?( statement)?",
     # "CRediT authorship contribution statement",
     "CRediT Author Statement",
     "Contributions",
@@ -37,6 +37,8 @@ screen_credit <- function(PDF_text_sentences)
     "We (would like to )?thank"
   ) |>
     .format_keyword_vector()
+
+
 
   orcid_section_list <- c(
 
