@@ -42,9 +42,10 @@ contribution_detection <- function(PDF_text_sentences)
   # ) |>
   #   paste(collapse = "|")
 
+
   credit_section_list <- c(
     "Author\\W?s?\\W? ?Contributions? Statement",
-    "A ?u ?t ?h ?o ?r\\W?s?\\W?s? ?C ?o ?n ?t ?r ?i ?b ?u ?t ?i ?o ?n ?s?",
+    "A ?u ?t ?h ?o ?r ?(\\W?s?|s? ?\\W?)? ?C ?o ?n ?t ?r ?i ?b ?u ?t ?i ?o ?n ?s?",
     "CRediT Authors?hip? Contributions?( Statement)?",
     "CRediT Author Statement",
     "Author\\W?s?\\W?s responsibilities",
@@ -53,11 +54,12 @@ contribution_detection <- function(PDF_text_sentences)
     "Contributions$|Contributions:",
     "C ?O ?N ?T ?R ?I ?B ?U ?T ?I ?O ?N ?S ?O ?F ?A ?U ?T ?H ?O ?R ?S",
     "AUTHOR CONTRIBUTORS",
-    "Author statements",
-    "Contributors", # TODO: check this for 10.1136 $ or no $
+    "Author statements?",
+    "C ?o ?n ?t ?r ?i ?b ?u ?t ?o ?r ?s", # TODO: check this for 10.1136 $ or no $
     # paste0("(", "Contributors .* (", credit_regex, "))"),
     "Authorship",
     "Author roles",
+    "Name Location Contribution",
     "Description of authors\\W? roles"
   ) |>
     .format_keyword_vector() |>
@@ -79,6 +81,9 @@ contribution_detection <- function(PDF_text_sentences)
     .format_keyword_vector()
 
   # PDF_text_sentences <- pdf_text_corpus
+
+  # PDF_text_sentences <- list(PDF_text_sentences)
+  # tib <- tibble(text = PDF_text_sentences[[1]])
   print("Extracting Contributions...")
   contrib_text_sentences <- PDF_text_sentences |>
     furrr::future_map(\(x) .extract_section(x, credit_section_list), .progress = TRUE)
@@ -118,7 +123,7 @@ contribution_detection <- function(PDF_text_sentences)
 
 # section_regexes <- credit_section_list
 # section_regexes <- orcid_section_list
-#' extract data availability statement
+#' extract section
 #' @noRd
 .extract_section <- function(PDF_text_sentences, section_regexes) {
 
@@ -167,7 +172,7 @@ contribution_detection <- function(PDF_text_sentences)
     "additional information:",
     "a ?c ?k ?n ?o ?w ?l ?e ?d ?g ?e? ?m ?e ?n ?t ?s?",
     "orcid",
-    "<section>() sources of)? funding",
+    "<section>(\\) sources of)? funding",
     "disclosures?",
     "peer",
     "ethic",
@@ -300,6 +305,9 @@ extract_orcid_hyperlink <- function(PDF_file) {
     unlist() |>
     unique() |>
     stringi::stri_unescape_unicode()
+
+#   str_extract_all("https://orcid.org/000-0002-1162-1318)>>/Type/Annot/Subtype/Link/Rect[301.436 642.104 309.316 652.422]/Border[0 0 0; https://orcid.org/0000-0001-5332-6811; https://orcid.org/0000-0002-4232-3305
+# ", "(https?.*orcid.*(\\d|X)(?=(\\)|,)))")
 
 # str_extract("http\072\057\057orcid\056org\0570000\0550001\0556389\0550029", "(https?\\://orcid\\.org/\\d{4}-\\d{4}-\\d{4}-\\w{4})|
 #   (https?\072\057\057orcid\056org\057\\d{4}\055\\d{4}\055\\d{4}\055\\w{4})")
