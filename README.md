@@ -1,2 +1,2 @@
 # ContriBOT
-Detection and extraction of author statements from scientific papers
+Detection and extraction of Author Contribution statements and Acknowledgements from scientific papers
