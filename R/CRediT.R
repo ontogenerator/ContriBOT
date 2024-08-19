@@ -65,6 +65,7 @@ contribution_detection <- function(PDF_text_sentences)
     .format_keyword_vector() |>
     stringr::str_replace_all("w", "W")
 
+
 # str_detect("credit authors contributions", "credit authors?(hip)? contributions?(statement)?")
   ackn_section_list <- c(
     "A ?c ?k ?n ?o ?w ?l ?e ?d ?g ?e? ?m ?e ?n ?t ?s?",
@@ -86,7 +87,7 @@ contribution_detection <- function(PDF_text_sentences)
   # tib <- tibble(text = PDF_text_sentences[[1]])
   print("Extracting Contributions...")
   contrib_text_sentences <- PDF_text_sentences |>
-    furrr::future_map(\(x) .extract_section(x, credit_section_list), .progress = TRUE)
+    furrr::future_map(\(x) .extract_section(x, credit_section_list, look_in_tables = TRUE), .progress = TRUE)
 
   print("Extracting Acknowledgements...")
   ackn_text_sentences <- PDF_text_sentences |>
@@ -120,16 +121,19 @@ contribution_detection <- function(PDF_text_sentences)
     purrr::map_chr(\(x) paste(x, collapse = " ")) |>
     tibble::enframe(name = name, value = value)
 }
-
+# tib <- tibble(text = PDF_text_sentences)
 # section_regexes <- credit_section_list
 # section_regexes <- orcid_section_list
 #' extract section
 #' @noRd
-.extract_section <- function(PDF_text_sentences, section_regexes) {
+.extract_section <- function(PDF_text_sentences, section_regexes, look_in_tables = FALSE) {
 
   # TODO: validate that text extraction stops at the right spots for ackn and credit
 
+  table_titles <- c("appendix( \\d)? authors")
+
   section_string <- paste0("(<section>)\\W+[\\d,\\W]*(", section_regexes, ")\\b")
+  if (look_in_tables == TRUE) section_string <- paste0(section_string, "|", table_titles)
   # stringr::str_detect(PDF_text_sentence, data_availability)
   section_detections <- furrr::future_map_lgl(PDF_text_sentences,
                                           \(sentence) stringr::str_detect(sentence, section_string))
@@ -157,7 +161,7 @@ contribution_detection <- function(PDF_text_sentences)
   str_section_sameline <- str_section |>
     stringr::str_remove(section_string)
 
-  section_regexes
+  # section_regexes
 
   stop_regex <- c(
     "c ?o ?n ?f ?l ?i ?c ?t ?s?",
@@ -187,7 +191,8 @@ contribution_detection <- function(PDF_text_sentences)
     "supplement",
     "et al\\.",
     "abbreviations",
-    "twitter"
+    "twitter",
+    "receive"
     )
 
   stop_regex <- stop_regex[!stringr::str_detect(stop_regex, section_regexes)] |>
@@ -306,10 +311,9 @@ extract_orcid_hyperlink <- function(PDF_file) {
     unique() |>
     stringi::stri_unescape_unicode()
 
-#   str_extract_all("https://orcid.org/000-0002-1162-1318)>>/Type/Annot/Subtype/Link/Rect[301.436 642.104 309.316 652.422]/Border[0 0 0; https://orcid.org/0000-0001-5332-6811; https://orcid.org/0000-0002-4232-3305
-# ", "(https?.*orcid.*(\\d|X)(?=(\\)|,)))")
+   # stringr::str_view("https://orcid.org/000-0002-1162-1318)>>/Type/Annot/Subtype/Link/Rect[301.436 642.104 309.316 652.422]/Border[0 0 0; https://orcid.org/0000-0001-5332-6811; https://orcid.org/0000-0002-4232-3305", "(https?.*orcid.*(\\d|X)(?=(\\)|,)))")
 
-# str_extract("http\072\057\057orcid\056org\0570000\0550001\0556389\0550029", "(https?\\://orcid\\.org/\\d{4}-\\d{4}-\\d{4}-\\w{4})|
+# stringr::str_view("http\072\057\057orcid\056org\0570000\0550001\0556389\0550029", "(https?\\://orcid\\.org/\\d{4}-\\d{4}-\\d{4}-\\w{4})|
 #   (https?\072\057\057orcid\056org\057\\d{4}\055\\d{4}\055\\d{4}\055\\w{4})")
   if (length(orcids) > 1) {
     return(paste(orcids, collapse = "; "))
