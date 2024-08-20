@@ -136,7 +136,7 @@ contribution_detection <- function(PDF_text_sentences)
   if (look_in_tables == TRUE) section_string <- paste0(section_string, "|", table_titles)
   # stringr::str_detect(PDF_text_sentence, data_availability)
   section_detections <- furrr::future_map_lgl(PDF_text_sentences,
-                                          \(sentence) stringr::str_detect(sentence, section_string))
+                                          \(sentence) stringr::str_detect(sentence, stringr::regex(section_string, ignore_case = TRUE)))
 # str_detect("<section> contributors all authors were involved in the discussion and formulation of the points to consider.", section_string)
   # if (sum(section_detections) > 0) {
   #   DAS_detections <- furrr::future_map_lgl(PDF_text_sentences,
@@ -159,7 +159,7 @@ contribution_detection <- function(PDF_text_sentences)
   str_section <- PDF_text_sentences[section_start] |>
     stringr::str_trim()
   str_section_sameline <- str_section |>
-    stringr::str_remove(section_string)
+    stringr::str_remove(stringr::regex(section_string, ignore_case = TRUE))
 
   # section_regexes
 
@@ -205,7 +205,7 @@ contribution_detection <- function(PDF_text_sentences)
   if (is_plos == TRUE) {
 
     section_end <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
-                                         \(sentence) stringr::str_detect(sentence, "section> references")) |>
+                                         \(sentence) stringr::str_detect(sentence, stringr::regex("section> references", ignore_case = TRUE))) |>
       which() - 1
 
   } else {
@@ -213,7 +213,7 @@ contribution_detection <- function(PDF_text_sentences)
     # if (stringr::str_detect(section_regexes, "contribution")) {
 
       section_end_candidates <- furrr::future_map_lgl(PDF_text_sentences[(section_start + 1):length(PDF_text_sentences)],
-                                           \(sentence) stringr::str_detect(sentence, stop_regex)) |>
+                                           \(sentence) stringr::str_detect(sentence, stringr::regex(stop_regex, ignore_case = TRUE))) |>
         which() - 1
 
       section_end <- section_end_candidates[1]
@@ -257,7 +257,7 @@ contribution_detection <- function(PDF_text_sentences)
 
   section <- PDF_text_sentences[section_start:section_end]
 
-  if (section_start < 50 & any(stringr::str_detect(PDF_text_sentences[1:10], "plos"))) {
+  if (section_start < 50 & any(stringr::str_detect(PDF_text_sentences[1:10], stringr::regex("plos", ignore_case = TRUE)))) {
     section <- .splice_plos_twopager(section)
   }
   section |>
@@ -306,7 +306,8 @@ extract_orcid_hyperlink <- function(PDF_file) {
   orcids <- readr::read_file_raw(PDF_file) |>
     furrr::future_map_chr(rawToChar) |>
     paste(collapse = "") |>
-    stringr::str_extract_all("(https?\\://orcid\\.org/\\d{4}-\\d{4}-\\d{4}-\\w{4})|(https?.*orcid.*(\\d|X))") |>
+    stringr::str_extract_all(stringr::regex("(https?\\://orcid\\.org/\\d{4}-\\d{4}-\\d{4}-\\w{4})|(https?.*orcid.*(\\d|X))",
+                             ignore_case = TRUE)) |>
     unlist() |>
     unique() |>
     stringi::stri_unescape_unicode()
